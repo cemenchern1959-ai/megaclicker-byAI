@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mega Clicker: Release</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #e0f7fa; margin: 0; overflow: hidden; user-select: none; touch-action: manipulation; transition: background 0.3s; }
+        .info-panel { background: rgba(255, 255, 255, 0.9); padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; transition: background 0.3s; }
+        h1 { margin: 0; font-size: 22px; color: #00796b; }
+        .buttons-row { display: flex; gap: 10px; margin-top: 8px; }
+        #challenge-btn, #end-btn { border: none; border-radius: 8px; padding: 10px 15px; font-size: 12px; font-weight: bold; cursor: pointer; color: white; }
+        #challenge-btn { background: #9c27b0; }
+        #end-btn { background: #95a5a6; cursor: not-allowed; }
+        #end-btn.active { background: #f1c40f; color: #333; cursor: pointer; box-shadow: 0 4px #d4ac0d; }
+        #surrender-btn { display: none; background: #e74c3c; color: white; border: none; border-radius: 12px; padding: 15px 30px; font-size: 18px; font-weight: bold; margin-bottom: 10px; cursor: pointer; box-shadow: 0 5px #c0392b; text-transform: uppercase; }
+        .info { font-size: 18px; font-weight: bold; color: #2c3e50; margin: 5px 0; }
+        #timer-display { color: #e74c3c; display: none; margin-bottom: 5px; }
+        #bonus-info { font-size: 14px; color: #ff5722; font-weight: bold; }
+        #game-btn { position: absolute; top: 450px; left: 50px; font-weight: bold; border: none; border-radius: 18px; color: white; transition: scale 0.1s; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px #bf360c; z-index: 5; cursor: pointer; }
+        #game-btn:active { scale: 0.95; }
+        .click-anim { position: absolute; color: #27ae60; font-weight: bold; font-size: 26px; pointer-events: none; z-index: 100; animation: flyUp 0.8s ease-out forwards; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+        @keyframes flyUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-120px); opacity: 0; } }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 200; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; }
+        .setting-item { margin: 15px 0; border-top: 1px solid #eee; padding-top: 10px; }
+        .color-picker { display: flex; justify-content: center; gap: 8px; margin-top: 8px; }
+        .color-dot { width: 35px; height: 35px; border-radius: 8px; border: 1px solid #ddd; cursor: pointer; }
+        .shop-item { display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; padding: 10px; border-radius: 10px; margin: 10px 0; border: 1px solid #ddd; }
+        .buy-btn { background: #27ae60; color: white; border: none; padding: 8px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        #settings-btn { position: fixed; bottom: 25px; right: 25px; width: 55px; height: 55px; background: #34495e; color: white; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; z-index: 100; border: 2px solid white; }
+        .footer { position: fixed; bottom: 10px; width: 100%; text-align: center; font-size: 12px; color: #546e7a; font-weight: bold; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div class="info-panel" id="top-panel">
+        <h1 id="ui-title">MEGA CLICKER ⚡</h1>
+        <div class="buttons-row">
+            <button id="challenge-btn">🏆 ЧЕЛЛЕНДЖ</button>
+            <button id="end-btn" disabled>🔒 ФИНАЛ</button>
+        </div>
+        <button id="surrender-btn">🏳️ СДАТЬСЯ</button>
+        <div id="timer-display" class="info">⏳ ТАЙМЕР: 20</div>
+        <div class="info"><span id="ui-score-text">🎯 Счёт</span>: <span id="score">0</span></div>
+        <div id="bonus-info">Клик: x1 | Авто: 0/сек</div>
+    </div>
+    
+    <button id="game-btn" style="width:130px; height:130px; background:#ff5722; font-size:26px;">КЛИК</button>
+    <div id="settings-btn" onclick="toggleModal('settings-modal', true)">⚙️</div>
+
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="ui-settings-title" style="margin:0">НАСТРОЙКИ ⚙️</h2>
+            <div class="setting-item">
+                <strong id="ui-lang-label">ЯЗЫК / LANGUAGE:</strong><br>
+                <button onclick="switchLanguage()" style="margin-top:5px; padding:10px; width:100%; border-radius:8px; border:1px solid #333; cursor:pointer; font-weight:bold; background:#e1bee7;" id="toggle-lang">РУССКИЙ 🇷🇺</button>
+            </div>
+            <button id="ui-shop-btn" onclick="openShop()" style="width:100%; padding:12px; background:#f39c12; color:white; border:none; border-radius:10px; font-weight:bold; margin-top:10px; cursor:pointer;">🛒 МАГАЗИН</button>
+            <div class="setting-item"><strong id="ui-panel-label">ЦВЕТ ПАНЕЛИ:</strong><div class="color-picker"><div class="color-dot" style="background:#ffffff" onclick="panelBg('#ffffff')"></div><div class="color-dot" style="background:#f8bbd0" onclick="panelBg('#f8bbd0')"></div><div class="color-dot" style="background:#c8e6c9" onclick="panelBg('#c8e6c9')"></div></div></div>
+            <div class="setting-item"><strong id="ui-bg-label">ЦВЕТ ФОНА:</strong><div class="color-picker"><div class="color-dot" style="background:#ffffff" onclick="changeBg('#ffffff')"></div><div class="color-dot" style="background:#2196F3" onclick="changeBg('#2196F3')"></div><div class="color-dot" style="background:#f44336" onclick="changeBg('#f44336')"></div><div class="color-dot" style="background:#ffeb3b" onclick="changeBg('#ffeb3b')"></div></div></div>
+            <button id="ui-close-btn" style="background:#34495e; color:white; border:none; padding:12px; width:100%; border-radius:10px; font-weight:bold; margin-top:10px; cursor:pointer;" onclick="toggleModal('settings-modal', false)">ЗАКРЫТЬ</button>
+        </div>
+    </div>
+
+    <div id="shop-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="ui-shop-title" style="margin:0">МАГАЗИН 🛒</h2>
+            <p style="font-size:12px; color:#666"><span id="ui-shop-score-text">Ваш счёт</span>: <span id="shop-score">0</span></p>
+            <div class="shop-item"><div style="text-align:left"><div id="ui-power-title" style="font-weight:bold">+1 к клику</div><div id="ui-power-price" style="font-size:11px">Цена: 1000</div></div><button class="buy-btn" id="ui-buy-btn-1" onclick="buyUpgrade('power')">КУПИТЬ</button></div>
+            <div class="shop-item"><div style="text-align:left"><div id="ui-auto-title" style="font-weight:bold">+1 к автоклику</div><div id="ui-auto-price" style="font-size:11px">Цена: 5000</div></div><button class="buy-btn" id="ui-buy-btn-2" onclick="buyUpgrade('auto')">КУПИТЬ</button></div>
+            <button id="ui-back-btn" style="background:#34495e; color:white; border:none; padding:12px; width:100%; border-radius:10px; font-weight:bold; margin-top:10px; cursor:pointer;" onclick="toggleModal('shop-modal', false)">НАЗАД</button>
+        </div>
+    </div>
+    <div class="footer">POWERED BY GEMINI</div>
+    <script>
+        let score = 0, powerUpgrade = 0, autoClickers = 0, isChallenge = false, cInterval, currentLang = 'ru';
+        const translations = {
+            ru: { title: "MEGA CLICKER ⚡", challenge: "🏆 ЧЕЛЛЕНДЖ", final_locked: "🔒 ФИНАЛ", final_active: "✨ ФИНАЛ", surrender: "🏳️ СДАТЬСЯ", timer: "⏳ ТАЙМЕР: ", score_text: "🎯 Счёт", click_bonus: "Клик", auto_bonus: "Авто", settings_title: "НАСТРОЙКИ ⚙️", lang_btn: "РУССКИЙ 🇷🇺", lang_label: "ЯЗЫК:", shop_btn: "🛒 МАГАЗИН", panel_label: "ЦВЕТ ПАНЕЛИ:", bg_label: "ЦВЕТ ФОНА:", close_btn: "ЗАКРЫТЬ", shop_title: "МАГАЗИН 🛒", your_score: "Ваш счёт", upgrade_power: "+1 к клику", upgrade_auto: "+1 к автоклику", price: "Цена", buy: "КУПИТЬ", back: "НАЗАД", victory: "🏆 ПОБЕДА!", defeat: "❌ ПРОИГРЫШ!", no_money: "Мало очков! 💸", click_btn: "КЛИК" },
+            en: { title: "MEGA CLICKER ⚡", challenge: "🏆 CHALLENGE", final_locked: "🔒 FINAL", final_active: "✨ FINAL", surrender: "🏳️ SURRENDER", timer: "⏳ TIMER: ", score_text: "🎯 Score", click_bonus: "Click", auto_bonus: "Auto", settings_title: "SETTINGS ⚙️", lang_btn: "ENGLISH 🇺🇸", lang_label: "LANGUAGE:", shop_btn: "🛒 SHOP", panel_label: "PANEL:", bg_label: "BACKGROUND:", close_btn: "CLOSE", shop_title: "SHOP 🛒", your_score: "Your score", upgrade_power: "+1 per click", upgrade_auto: "+1 auto click", price: "Price", buy: "BUY", back: "BACK", victory: "🏆 VICTORY!", defeat: "❌ DEFEAT!", no_money: "Not enough points! 💸", click_btn: "CLICK" }
+        };
+
+        function saveGame() { localStorage.setItem('megaClickerData', JSON.stringify({ score, powerUpgrade, autoClickers, lang: currentLang })); }
+        function loadGame() {
+            const saved = localStorage.getItem('megaClickerData');
+            if (saved) { const d = JSON.parse(saved); score = d.score || 0; powerUpgrade = d.powerUpgrade || 0; autoClickers = d.autoClickers || 0; currentLang = d.lang || 'ru'; }
+            updateUI();
+        }
+
+        function updateUI() {
+            const t = translations[currentLang];
+            document.getElementById('ui-title').innerText = t.title;
+            document.getElementById('challenge-btn').innerText = t.challenge;
+            document.getElementById('surrender-btn').innerText = t.surrender;
+            document.getElementById('ui-score-text').innerText = t.score_text;
+            document.getElementById('ui-settings-title').innerText = t.settings_title;
+            document.getElementById('ui-lang-label').innerText = t.lang_label;
+            document.getElementById('toggle-lang').innerText = t.lang_btn;
+            document.getElementById('ui-shop-btn').innerText = t.shop_btn;
+            document.getElementById('ui-panel-label').innerText = t.panel_label;
+            document.getElementById('ui-bg-label').innerText = t.bg_label;
+            document.getElementById('ui-close-btn').innerText = t.close_btn;
+            document.getElementById('ui-shop-title').innerText = t.shop_title;
+            document.getElementById('ui-shop-score-text').innerText = t.your_score;
+            document.getElementById('ui-power-title').innerText = t.upgrade_power;
+            document.getElementById('ui-auto-title').innerText = t.upgrade_auto;
+            document.getElementById('ui-power-price').innerText = t.price + ": 1000";
+            document.getElementById('ui-auto-price').innerText = t.price + ": 5000";
+            document.getElementById('ui-back-btn').innerText = t.back;
+            document.getElementById('game-btn').innerText = t.click_btn;
+            document.getElementById('ui-buy-btn-1').innerText = t.buy;
+            document.getElementById('ui-buy-btn-2').innerText = t.buy;
+            updateGame();
+        }
+
+        function switchLanguage() { currentLang = currentLang === 'ru' ? 'en' : 'ru'; updateUI(); saveGame(); }
+        function toggleModal(id, s) { document.getElementById(id).style.display = s ? 'flex' : 'none'; if(id==='shop-modal') document.getElementById('shop-score').innerText = Math.floor(score); }
+        function openShop() { toggleModal('settings-modal', false); toggleModal('shop-modal', true); }
+        function changeBg(c) { document.body.style.background = c; }
+        function panelBg(c) { document.getElementById('top-panel').style.background = c; }
+
+        function updateGame() {
+            const t = translations[currentLang];
+            document.getElementById('score').innerText = Math.floor(score);
+            let base = (score >= 15000 ? 100 : score >= 10000 ? 30 : score >= 5000 ? 10 : score >= 1000 ? 2 : 1);
+            document.getElementById('bonus-info').innerText = `${t.click_bonus}: x${base + powerUpgrade} | ${t.auto_bonus}: ${autoClickers}/sec`;
+            const end = document.getElementById('end-btn');
+            if (score >= 17500) { end.disabled = false; end.classList.add('active'); end.innerText = t.final_active; }
+            else { end.disabled = true; end.classList.remove('active'); end.innerText = t.final_locked; }
+        }
+
+        document.getElementById('game-btn').onclick = function(e) {
+            let base = (score >= 15000 ? 100 : score >= 10000 ? 30 : score >= 5000 ? 10 : score >= 1000 ? 2 : 1);
+            let add = isChallenge ? 1 : (base + powerUpgrade);
+            score += add; updateGame(); saveGame();
+            const a = document.createElement('div'); a.className = 'click-anim'; a.innerText = "+" + add;
+            a.style.left = e.clientX + 'px'; a.style.top = e.clientY + 'px'; document.body.appendChild(a);
+            setTimeout(() => a.remove(), 800);
+            const b = document.getElementById('game-btn'), p = 20, h = 350;
+            b.style.left = (Math.random() * (window.innerWidth - b.offsetWidth - p*2) + p) + 'px';
+            b.style.top = (Math.random() * (window.innerHeight - b.offsetHeight - h) + h) + 'px';
+        };
+
+        function buyUpgrade(t) {
+            if (t === 'power' && score >= 1000) { score -= 1000; powerUpgrade += 1; }
+            else if (t === 'auto' && score >= 5000) { score -= 5000; autoClickers += 1; }
+            else { alert(translations[currentLang].no_money); return; }
+            updateGame(); saveGame(); document.getElementById('shop-score').innerText = Math.floor(score);
+        }
+
+        document.getElementById('challenge-btn').onclick = function() {
+            isChallenge = true; score = 0; document.getElementById('timer-display').style.display = 'block';
+            document.getElementById('surrender-btn').style.display = 'block'; this.style.visibility = 'hidden'; 
+            document.getElementById('end-btn').style.visibility = 'hidden'; let tl = 20;
+            cInterval = setInterval(() => { tl--; document.getElementById('timer-display').innerText = translations[currentLang].timer + tl; if (tl <= 0) finish(score >= 40); }, 1000);
+        };
+
+        function finish(w) { clearInterval(cInterval); isChallenge = false; alert(w ? translations[currentLang].victory : translations[currentLang].defeat); score = 0; powerUpgrade = 0; autoClickers = 0; saveGame(); document.getElementById('timer-display').style.display = 'none'; document.getElementById('surrender-btn').style.display = 'none'; document.getElementById('challenge-btn').style.visibility = 'visible'; document.getElementById('end-btn').style.visibility = 'visible'; updateGame(); }
+        document.getElementById('surrender-btn').onclick = () => finish(false);
+        setInterval(() => { if (autoClickers > 0) { score += autoClickers; updateGame(); saveGame(); } }, 1000);
+        window.onload = loadGame;
+    </script>
+</body>
+</html>
